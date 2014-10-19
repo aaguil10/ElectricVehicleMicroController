@@ -1,0 +1,39 @@
+
+******Most Common Commands******
+
+git add . //Add files all into the repo(you can also do "git add filename.c" for individual files).
+
+git commit //Basically the "save" function. If shit hits the fan you always go back to your last commit.
+           //You must use the "Git add" command before you commit.
+           //It will ask you to write a message. Just describe what you just finished.
+
+git pull //Will merge your work with the most up to date version on the master branch. Note: you need to commit 
+         //before you can do a pull.
+
+git push //Will push your changes to the master branch. 
+         //Make sure to pull and test your work before pushing to master!
+
+
+*****Other Commands You Should Know About********
+
+git init //Initializes git repo.(Make sure it's on the top directory)
+
+git status //Shows your current status.
+
+git log //will list all commits that have been made in the project. It will also show you a commit # like so:
+        //commit b652edfd888cd3d5e7fcb857d0dabc5a0fcb5e28 
+
+git reset --hard b652edfd888cd3d5e7fcb857d0dabc5a0fcb5e28  //Revert you back to the commit specified by commit #
+                                                           //It deletes all changes after your last commit
+
+git clone <cloneURL> //Copys the git project on to your machine. All the changes you make exist only on your
+                     //machine until you push.
+
+
+
+******Commands To Get Started*********
+
+git clone git@github.com:aaguil10/ElectricVehicleMicroController.git //Navigate to the directory that you want 
+                                                                     //to put it in. run this command. It will 
+                                                                     //copy our project into that directory.
+
