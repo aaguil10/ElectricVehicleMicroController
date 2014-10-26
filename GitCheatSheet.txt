@@ -37,3 +37,4 @@ git clone git@github.com:aaguil10/ElectricVehicleMicroController.git //Navigate 
                                                                      //to put it in. run this command. It will 
                                                                      //copy our project into that directory.
 
+git clone https://github.com/aaguil10/ElectricVehicleMicroController.git //if the above command doesnt work
