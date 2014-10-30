@@ -1,9 +1,10 @@
 /*
-  AnalogReadSerial
-  Reads an analog input on pin 0, prints the result to the serial monitor.
-  Attach the center pin of a potentiometer to pin A0, and the outside pins to +5V and ground.
- 
- This example code is in the public domain.
+ *  Dagne Micro-Controller Main Control Loop 
+ *
+ *  This file contains the main control system that runs on the Arduino for the
+ *  Dagne Electric Vehicle.
+ *
+ *  Created By: The Dream Team
  */
 
 const int PWMone = 10;
