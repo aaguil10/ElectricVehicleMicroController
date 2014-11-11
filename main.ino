@@ -88,6 +88,8 @@ const float FWD_LIMIT = 4095.0; //Full throttle
 const float REV_LIMIT = 600.0; //Limit throttle when reversing
 
 float accelRef = 0.0; //Acceleration amount as requested by driver
+
+//Sets controlVal based on user throttle input and saturation limits
 void setThrottle() {
   float controlVal;     //TODO: Make ControlVal actually do something PID related
 
@@ -100,14 +102,27 @@ void setThrottle() {
       controlVal = REV_LIMIT * THROTTLE_REV_GAIN * accelRef + THROTTLE_OFFSET;
       if (controlVal > REV_LIMIT){ controlVal = REV_LIMIT; } //Saturation control
       break;
-    case DEFAULT: //For park and directional choose state, clear controlVal
+    default: //For park and directional choose state, clear controlVal
       controlVal = 0.0;
       break;
   }
   if (accelRef == 0.0){ controlVal = 0.0; } //If no acceleration requested, clear
 }
-void changeRevDirection(){
 
+//Changes revState or accelRef/brakeRef based on input
+// TODO: Fill in switch statements 
+void setRev(){
+    switch (revState){
+    case DIRECTION_CHOOSE: //Set Rev Direction based on joystick input
+      break;
+    case FORWARD:
+      break;
+    case REVERSE:
+      controlVal = 0.0;
+      break;
+    case PARK:
+      break;
+  }
 }
 
 
