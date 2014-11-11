@@ -37,7 +37,7 @@ void loop() {
   hydraulicControl();
   tractionMotorCommandProcessing();
   setThrottle();
-  changeRevDirection();
+  setRevValues();
 
   int joystickVal = readJoystick(A0);
   int steerVal = readSteer(A1);
@@ -111,7 +111,7 @@ void setThrottle() {
 
 //Changes revState or accelRef/brakeRef based on input
 // TODO: Fill in switch statements 
-void setRev(){
+void setRevValues(){
     switch (revState){
     case DIRECTION_CHOOSE: //Set Rev Direction based on joystick input
       break;
