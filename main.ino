@@ -59,6 +59,11 @@ void adjustForLeanMode() {
 
 }
 
+//Amount of lean/steer/break/accel as requested by driver input
+const float leanRef = 0.0;
+const float steerRef = 0.0;
+const float brakeRef = 0.0;
+const float accelRef = 0.0;
 void steerControl() {
 
 }
@@ -87,8 +92,6 @@ const float THROTTLE_OFFSET = 280.0;
 const float FWD_LIMIT = 4095.0; //Full throttle
 const float REV_LIMIT = 600.0; //Limit throttle when reversing
 
-float accelRef = 0.0; //Acceleration amount as requested by driver
-
 //Sets controlVal based on user throttle input and saturation limits
 void setThrottle() {
   float controlVal;     //TODO: Make ControlVal actually do something PID related
@@ -109,21 +112,27 @@ void setThrottle() {
   if (accelRef == 0.0){ controlVal = 0.0; } //If no acceleration requested, clear
 }
 
+// If in direction choose mode, set rev direction based on joystick input
+void setRevDir(){
+
+}
+
 //Changes revState or accelRef/brakeRef based on input
 // TODO: Fill in switch statements 
 void setRevValues(){
     switch (revState){
-    case DIRECTION_CHOOSE: //Set Rev Direction based on joystick input
+    case DIRECTION_CHOOSE:
+      setRevDir();
       break;
     case FORWARD:
       break;
     case REVERSE:
-      controlVal = 0.0;
       break;
     case PARK:
       break;
   }
 }
+
 
 
 /* IO Functions */
