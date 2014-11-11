@@ -18,6 +18,7 @@ void setup() {
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
   Serial.write("Dagne control loop begin");
+  initDevice();
 }
 
 
@@ -44,6 +45,11 @@ void loop() {
   PWMOutput1(joystickVal, steerVal, 9);
   PWMOutput2(joystickVal, steerVal, 10);
   delay(30);        // delay in between reads for stability
+}
+
+//Initialization function for device
+void initDevice(){
+
 }
 
 /* Main Control Functions */
@@ -112,13 +118,8 @@ void setThrottle() {
   if (accelRef == 0.0){ controlVal = 0.0; } //If no acceleration requested, clear
 }
 
-// If in direction choose mode, set rev direction based on joystick input
-void setRevDir(){
-
-}
-
 //Changes revState or accelRef/brakeRef based on input
-// TODO: Fill in switch statements 
+//TODO: Fill in switch statements 
 void setRevValues(){
     switch (revState){
     case DIRECTION_CHOOSE:
@@ -133,6 +134,10 @@ void setRevValues(){
   }
 }
 
+// If in direction choose mode, set rev direction based on joystick input
+void setRevDir(){
+
+}
 
 
 /* IO Functions */
