@@ -18,21 +18,27 @@ void setup() {
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
   Serial.write("Dagne control loop begin");
+  initDevice();
 }
+
+
+//Used to indicate direction of car revving (a.k.a. FwdRevState)
+typedef enum {PARK, DIRECTION_CHOOSE, FORWARD, REVERSE} revState_t;
+revState_t revState = PARK;
 
 // the loop routine runs over and over again forever:
 void loop() {
   // TODO add print status
-
-  SampleSensors(); 
-  SpeedSteeringControlMap();
-  AdjustForLeanMode();
-  SteerControl();
-  LeanControl();
-  BrakeControl();
-  HydraulicControl();
-  TractionMotorCommandProcessing();
-  SetThrottle();
+  sampleSensors(); 
+  speedSteeringControlMap();
+  adjustForLeanMode();
+  steerControl();
+  leanControl();
+  brakeControl();
+  hydraulicControl();
+  tractionMotorCommandProcessing();
+  setThrottle();
+  setRevValues();
 
   int joystickVal = readJoystick(A0);
   int steerVal = readSteer(A1);
@@ -41,43 +47,97 @@ void loop() {
   delay(30);        // delay in between reads for stability
 }
 
+//Initialization function for device
+void initDevice(){
+
+}
+
 /* Main Control Functions */
-void SampleSensors() {
+void sampleSensors() {
 
 }
 
-void SpeedSteeringControlMap() {
+void speedSteeringControlMap() {
 
 }
 
-void AdjustForLeanMode() {
+void adjustForLeanMode() {
 
 }
 
-void SteerControl() {
+//Amount of lean/steer/break/accel as requested by driver input
+float leanRef = 0.0;
+float steerRef = 0.0;
+float brakeRef = 0.0;
+float accelRef = 0.0;
+void steerControl() {
 
 }
 
-void LeanControl() {
+void leanControl() {
 
 }
 
-void BrakeControl() {
+void brakeControl() {
 
 }
 
-void HydraulicControl() {
+void hydraulicControl() {
 
 }
 
-void TractionMotorCommandProcessing() {
+void tractionMotorCommandProcessing() {
 
 }
 
-void SetThrottle() {
+//These values address the saturation limits of throttle circuit in setThrottle
+const float THROTTLE_FWD_GAIN = 0.040;
+const float THROTTLE_REV_GAIN = 0.0990;
+const float THROTTLE_OFFSET = 280.0;
 
+const float FWD_LIMIT = 4095.0; //Full throttle
+const float REV_LIMIT = 600.0; //Limit throttle when reversing
+
+//Sets controlVal based on user throttle input and saturation limits
+void setThrottle() {
+  float controlVal;     //TODO: Make ControlVal actually do something PID related
+
+  switch (revState){
+    case FORWARD:
+      controlVal = FWD_LIMIT * THROTTLE_FWD_GAIN * accelRef + THROTTLE_OFFSET;
+      if (controlVal > FWD_LIMIT){ controlVal = FWD_LIMIT; } //Saturation control
+      break;
+    case REVERSE:
+      controlVal = REV_LIMIT * THROTTLE_REV_GAIN * accelRef + THROTTLE_OFFSET;
+      if (controlVal > REV_LIMIT){ controlVal = REV_LIMIT; } //Saturation control
+      break;
+    default: //For park and directional choose state, clear controlVal
+      controlVal = 0.0;
+      break;
+  }
+  if (accelRef == 0.0){ controlVal = 0.0; } //If no acceleration requested, clear
 }
 
+//Changes revState or accelRef/brakeRef based on input
+//TODO: Fill in switch statements 
+void setRevValues(){
+    switch (revState){
+    case DIRECTION_CHOOSE:
+      setRevDir();
+      break;
+    case FORWARD:
+      break;
+    case REVERSE:
+      break;
+    case PARK:
+      break;
+  }
+}
+
+// If in direction choose mode, set rev direction based on joystick input
+void setRevDir(){
+
+}
 
 
 /* IO Functions */
