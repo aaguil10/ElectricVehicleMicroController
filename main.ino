@@ -66,10 +66,10 @@ void adjustForLeanMode() {
 }
 
 //Amount of lean/steer/break/accel as requested by driver input
-const float leanRef = 0.0;
-const float steerRef = 0.0;
-const float brakeRef = 0.0;
-const float accelRef = 0.0;
+float leanRef = 0.0;
+float steerRef = 0.0;
+float brakeRef = 0.0;
+float accelRef = 0.0;
 void steerControl() {
 
 }
