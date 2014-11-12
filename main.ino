@@ -11,8 +11,31 @@
 const int PWMone = 10; //Valve Coil FET. For Brake Pressure, Steer Angle, Lean Angle control
 const int PWMtwo = 9;  //Valve Coil FET. (Same as above)
 
+// Sensor Input Pins for Hydralic Valve(0-12v on/off) [see powerpoint]
+const int pLeanSenseIn = 0; 
+const int pSteerSenseIn = 1;
+const int pSpeedSenseIn = 2;
+
+// Reverse Switch, Hydraulic Pump, and Keyswitch Relay pins
+const int pRevSw1 = 3;  //  Reversing contactor number 1
+const int pRevSw2 = 4;  //  Reversing contactor number 2
+const int pKeySwitch = 5;  // Throttle key switch to enable motor controller
+const int HydPumpEn = 6;  		//  Hydraulic Pump Control Pin
+
+// Reverse Switch Input
+const int ParkBrakeEn = 7;
+
+const int Aux_Pin = 8;
+
+
+const int JoystickBtn1 = 12;
+const int JoystickBtn2 = 13;
+
 int outputJoy = 0;      
 int outputSte = 0;  
+
+int buttonState1 = 0;   
+int buttonState2 = 0;
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -52,12 +75,39 @@ void loop() {
   
   PWMOutput1(joystickValx, SteerSensor, 9);
   PWMOutput2(joystickValx, SteerSensor, 10);
+  button_test(); 
   delay(30);        // delay in between reads for stability
 }
 
 //Initialization function for device
 void initDevice(){
+	pinMode(JoystickBtn1, INPUT);
+    pinMode(JoystickBtn2, INPUT);
+    pinMode(pSteerSenseIn, OUTPUT);
+	pinMode(pLeanSenseIn, OUTPUT);
+	pinMode(pSpeedSenseIn, OUTPUT);
+	pinMode(pRevSw1, OUTPUT);
+	pinMode(pRevSw2, OUTPUT);
+	pinMode(pKeySwitch, OUTPUT);
+	pinMode(HydPumpEn, OUTPUT);
+	pinMode(ParkBrakeEn, OUTPUT);
+	pinMode(Aux_Pin, OUTPUT);
+  
+}
 
+void button_test(){
+  buttonState1 = digitalRead(JoystickBtn1);
+  buttonState2 = digitalRead(JoystickBtn2);
+  if (buttonState1 == HIGH) {
+    Serial.println("btn1: on");
+  }else{
+    Serial.println("btn1: off"); 
+  }
+  if (buttonState2 == HIGH) {
+    Serial.println("btn2: on");
+  }else{
+    Serial.println("btn: off"); 
+  }
 }
 
 /* Main Control Functions */
@@ -149,18 +199,6 @@ void setRevDir(){
 
 
 /* IO Functions */
-
-/*int readJoystick(int JoystickPin) {
-  int sensorValue = analogRead(JoystickPin);
-  int outputJoy = map(sensorValue, 0, 1023, 0, 255);
-  return outputJoy;
-}
-
-int readSteer(int SteerPin) {
-  int sensorValue = analogRead(SteerPin);
-  int outputJoy = map(sensorValue, 0, 1023, 0, 255);
-  return outputJoy;
-}*/
 
 int readAnalog(int AnalogPin) {
   int sensorValue = analogRead(AnalogPin);
