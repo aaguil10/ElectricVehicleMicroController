@@ -7,8 +7,9 @@
  *  Created By: The Dream Team
  */
 
-const int PWMone = 10;
-const int PWMtwo = 9;
+//The Arduino Uno does not have enough pins to output all the PWM outputs.
+const int PWMone = 10; //Valve Coil FET. For Brake Pressure, Steer Angle, Lean Angle control
+const int PWMtwo = 9;  //Valve Coil FET. (Same as above)
 
 int outputJoy = 0;      
 int outputSte = 0;  
@@ -39,11 +40,18 @@ void loop() {
   tractionMotorCommandProcessing();
   setThrottle();
   setRevValues();
-
-  int joystickVal = readJoystick(A0);
-  int steerVal = readSteer(A1);
-  PWMOutput1(joystickVal, steerVal, 9);
-  PWMOutput2(joystickVal, steerVal, 10);
+  //analog inputs
+  int joystickValy = readAnalog(A0);
+  int joystickValx = readAnalog(A1);
+  int PumpVal = readAnalog(A2);
+  int BrakeSensor = readAnalog(A3);
+  //PWM inputs
+  int SteerSensor = readAnalog(A4);
+  int LeanSensor = readAnalog(A4);
+  int SpeedSensor = readAnalog(A4);
+  
+  PWMOutput1(joystickValx, SteerSensor, 9);
+  PWMOutput2(joystickValx, SteerSensor, 10);
   delay(30);        // delay in between reads for stability
 }
 
@@ -142,7 +150,7 @@ void setRevDir(){
 
 /* IO Functions */
 
-int readJoystick(int JoystickPin) {
+/*int readJoystick(int JoystickPin) {
   int sensorValue = analogRead(JoystickPin);
   int outputJoy = map(sensorValue, 0, 1023, 0, 255);
   return outputJoy;
@@ -152,6 +160,12 @@ int readSteer(int SteerPin) {
   int sensorValue = analogRead(SteerPin);
   int outputJoy = map(sensorValue, 0, 1023, 0, 255);
   return outputJoy;
+}*/
+
+int readAnalog(int AnalogPin) {
+  int sensorValue = analogRead(AnalogPin);
+  int output = map(sensorValue, 0, 1023, 0, 255);
+  return output;
 }
 
 void PWMOutput1(int joyval, int sasval, int OutputPin) {
