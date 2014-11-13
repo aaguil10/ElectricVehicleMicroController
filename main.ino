@@ -43,6 +43,7 @@ void setup() {
   Serial.begin(9600);
   Serial.write("Dagne control loop begin");
   initDevice();
+  pinMode(pSpeedSenseIn, OUTPUT);
 }
 
 
@@ -68,14 +69,15 @@ void loop() {
   int joystickValx = readAnalog(A1);
   int PumpVal = readAnalog(A2);
   int BrakeSensor = readAnalog(A3);
-  //PWM inputs
+   //PWM inputs
   int SteerSensor = readAnalog(A4);
   int LeanSensor = readAnalog(A4);
   int SpeedSensor = readAnalog(A4);
   
-  PWMOutput1(joystickValx, SteerSensor, 9);
   PWMOutput2(joystickValx, SteerSensor, 10);
   button_test(); 
+  led_test();
+  digitalWrite(pSpeedSenseIn, HIGH);
   delay(30);        // delay in between reads for stability
 }
 
@@ -85,7 +87,7 @@ void initDevice(){
     pinMode(JoystickBtn2, INPUT);
     pinMode(pSteerSenseIn, OUTPUT);
 	pinMode(pLeanSenseIn, OUTPUT);
-	pinMode(pSpeedSenseIn, OUTPUT);
+	//pinMode(pSpeedSenseIn, OUTPUT);
 	pinMode(pRevSw1, OUTPUT);
 	pinMode(pRevSw2, OUTPUT);
 	pinMode(pKeySwitch, OUTPUT);
@@ -108,6 +110,18 @@ void button_test(){
   }else{
     Serial.println("btn: off"); 
   }
+}
+
+void led_test(){
+  digitalWrite(pSteerSenseIn, HIGH);
+  digitalWrite(pLeanSenseIn, HIGH);
+  digitalWrite(pSpeedSenseIn, HIGH);
+  digitalWrite(pRevSw1, HIGH);
+  digitalWrite(pRevSw2, HIGH);
+  digitalWrite(pKeySwitch, HIGH);
+  digitalWrite(HydPumpEn, HIGH);
+  digitalWrite(HydPumpEn, HIGH);
+  digitalWrite(Aux_Pin, HIGH);
 }
 
 /* Main Control Functions */
