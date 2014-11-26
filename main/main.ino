@@ -7,9 +7,25 @@
  *  Created By: The Dream Team
  */
 
+#define SPEED_SENS_MAX      30.0   //  Speed [mph] above which speed sensitive steering/leaning saturates
+#define SPEED_SENS_MIN      4.0    //  Speed [mph] below which speed sensitive steering/leaning saturates
+
+#define LEAN_MAX_ANGLE      29.0
+#define LEAN_MIN_ANGLE      2.0
+#define SPEED_LIMIT_LEAN_SLOPE  (LEAN_MAX_ANGLE - LEAN_MIN_ANGLE)/(SPEED_SENS_MAX - SPEED_SENS_MIN)
+
+#define LEAN_OFFSET         30      //  Dead zone offset value
+
+//TODO: Is our PWM resolution different from theirs?
+#define PWM_LIMIT           256    //  Practical upper limit, = (PWM_RESOLUTION - #_OFFSET) because OFFSET will push duty cycle to limit
+
+
 //The Arduino Uno does not have enough pins to output all the PWM outputs.
 const int PWMone = 10; //Valve Coil FET. For Brake Pressure, Steer Angle, Lean Angle control
 const int PWMtwo = 9;  //Valve Coil FET. (Same as above)
+
+const int joystickFBSensor = A0;
+const int joystickLRSensor = A1;
 
 // Sensor Input Pins for Hydralic Valve(0-12v on/off) [see powerpoint]
 const int pLeanSenseIn = 0; 
@@ -25,8 +41,11 @@ const int HydPumpEn = 6;  		//  Hydraulic Pump Control Pin
 // Reverse Switch Input
 const int ParkBrakeEn = 7;
 
-const int Aux_Pin = 8;
+const int leanModeTogglePin = 8;
 
+//Lean Valve Coil FET output pins
+const int leanValvePinOne = 9;
+const int leanValvePinTwo = 10;
 
 const int JoystickBtn1 = 12;
 const int JoystickBtn2 = 13;
@@ -34,8 +53,14 @@ const int JoystickBtn2 = 13;
 int outputJoy = 0;      
 int outputSte = 0;  
 
-int buttonState1 = 0;   
+int buttonState1 = 0;
 int buttonState2 = 0;
+
+//Current speed in MPH
+float SpeedState = 0.0;
+
+int joystickValx = 0;
+int joystickValy = 0;
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -44,6 +69,13 @@ void setup() {
   Serial.write("Dagne control loop begin");
   initDevice();
   pinMode(pSpeedSenseIn, OUTPUT);
+  pinMode(HydPumpEn, OUTPUT);
+  pinMode(leanValvePinOne, OUTPUT);
+  pinMode(leanValvePinTwo, OUTPUT);
+  pinMode(leanModeTogglePin, INPUT);
+  pinMode(pLeanSenseIn, INPUT);
+  pinMode(joystickLRSensor, INPUT);
+  pinMode(joystickFBSensor, INPUT);
 }
 
 
@@ -65,8 +97,8 @@ void loop() {
   setThrottle();
   setRevValues();
   //analog inputs
-  int joystickValy = readAnalog(A0);
-  int joystickValx = readAnalog(A1);
+  joystickValy = readAnalog(joystickFBSensor);
+  joystickValx = readAnalog(joystickLRSensor);
   int PumpVal = readAnalog(A2);
   int BrakeSensor = readAnalog(A3);
    //PWM inputs
@@ -93,7 +125,7 @@ void initDevice(){
 	pinMode(pKeySwitch, OUTPUT);
 	pinMode(HydPumpEn, OUTPUT);
 	pinMode(ParkBrakeEn, OUTPUT);
-	pinMode(Aux_Pin, OUTPUT);
+	pinMode(leanModeTogglePin, OUTPUT);
   
 }
 
@@ -121,12 +153,148 @@ void led_test(){
   digitalWrite(pKeySwitch, HIGH);
   digitalWrite(HydPumpEn, HIGH);
   digitalWrite(HydPumpEn, HIGH);
-  digitalWrite(Aux_Pin, HIGH);
+  digitalWrite(leanModeTogglePin, HIGH);
 }
+
+
+/* Lean Section */
+//TODO: Everything regarding reading PWM input of the lean sensor
+class LeanSensorController {
+  public:
+    volatile int sensorState;
+    void initInterrupts();
+    float getDutyCycle();
+    LeanSensorController();
+  private:
+    void uptickInterrupt();
+    void downtickInterrupt();
+};
+
+LeanSensorController::LeanSensorController(){
+  sensorState = LOW;
+  initInterrupts();
+}
+
+void LeanSensorController::initInterrupts(){}
+void LeanSensorController::uptickInterrupt(){}
+void LeanSensorController::downtickInterrupt(){}
+float LeanSensorController::getDutyCycle(){return 0.0;}
+
+
+
+class LeanController{
+  public:
+    LeanSensorController *lsc;
+    void update(){
+      leanOn = readLeanMode();
+      leanAngleLimit = calcLeanAngleLimit();
+      leanAngleState = calcLeanAngle();
+      leanRef = calcLeanRef();
+    }
+    void updateSensors();
+    //Accessors
+    void setSensorVal(float sensorVal);
+    float getSensorVal();
+    float getLeanRef();
+    float getLeanAngleState();
+    LeanController();
+  private:
+    float pLeanSenseInVal;
+    bool leanOn;
+    float leanAngleLimit; // Speed sensitive lean limits
+    float leanAngleState;
+    float leanRef;
+    float leanError;
+    int leanValveCmd;
+
+    bool readLeanMode();
+    float calcLeanAngleLimit();
+    float calcLeanAngle();
+    float calcLeanRef();
+    void calcLeanValveOutputs();
+};
+LeanController *lc;
+
+void LeanController::updateSensors(){
+  setSensorVal(lsc->getDutyCycle());
+}
+
+void LeanController::setSensorVal(float sensorVal){
+  this->pLeanSenseInVal = pLeanSenseInVal;
+}
+
+float LeanController::getSensorVal(){
+  return this->pLeanSenseInVal;
+}
+
+float LeanController::getLeanRef(){
+  return this->leanRef;
+}
+
+float LeanController::getLeanAngleState(){
+  return this->leanAngleState;
+}
+// True == car leans (like bike), False == lean mode off (like traditional car)
+bool LeanController::readLeanMode(){
+  return ((digitalRead(leanModeTogglePin) == HIGH) ? true : false);
+}
+
+// This limit differs from the hardcoded limits in that it changes based on speed
+float LeanController::calcLeanAngleLimit(){
+  float newLimit = SPEED_LIMIT_LEAN_SLOPE * SpeedState + LEAN_MIN_ANGLE;
+  // Clamp limits to their maxima
+  if (newLimit > LEAN_MAX_ANGLE){ newLimit = LEAN_MAX_ANGLE;}
+  if (newLimit < LEAN_MIN_ANGLE){ newLimit = LEAN_MIN_ANGLE;}
+  return newLimit;
+}
+
+float LeanController::calcLeanAngle(){
+  //return (360.0*LeanDuty/LeanPeriod - 1.80);  // Correct for a 1.8deg offset 
+  //TODO: May be calculated wrong
+  return (360.0 * pLeanSenseInVal - 1.80); //1023 is the max analog input val in Arduino
+}
+
+// In the original code, this also calculates steerRef & countersteering
+float LeanController::calcLeanRef(){
+  if (!leanOn){ //If lean mode off, no lean needed
+    return 0.0;
+  }
+  float newRef = -joystickValx * leanAngleLimit; //TODO: May be wrong
+  this->leanError = newRef - leanAngleState;
+  return newRef;
+}
+
+//Stolen from the brake valve outputs, thanks Leland
+void LeanController::calcLeanValveOutputs(){
+  float ControlVal = 0.0; //TODO: No idea how to compute w/o ComputePWMOutputs()
+  if (ControlVal > PWM_LIMIT) {
+    leanValveCmd = PWM_LIMIT;
+  } else if (ControlVal < -PWM_LIMIT) {
+    leanValveCmd = -PWM_LIMIT;
+  } else {
+    leanValveCmd = ((int) ControlVal);
+  }
+
+  if (leanValveCmd >= 0) {
+    analogWrite(leanValvePinOne, leanValveCmd + LEAN_OFFSET);
+    digitalWrite(leanValvePinTwo, 0);
+  } else {
+    analogWrite(leanValvePinTwo, -leanValveCmd + LEAN_OFFSET);
+    digitalWrite(leanValvePinOne, 0);
+  }
+}
+
+//Constructor -- set default values
+LeanController::LeanController(){
+    leanOn = true;
+    leanAngleLimit = LEAN_MIN_ANGLE; // Speed sensitive lean limits
+}
+
+
 
 /* Main Control Functions */
 void sampleSensors() {
-
+  lc->setSensorVal(analogRead(pLeanSenseIn));
 }
 
 void speedSteeringControlMap() {
@@ -138,7 +306,6 @@ void adjustForLeanMode() {
 }
 
 //Amount of lean/steer/break/accel as requested by driver input
-float leanRef = 0.0;
 float steerRef = 0.0;
 float brakeRef = 0.0;
 float accelRef = 0.0;
@@ -147,7 +314,7 @@ void steerControl() {
 }
 
 void leanControl() {
-
+    lc->update();
 }
 
 void brakeControl() {

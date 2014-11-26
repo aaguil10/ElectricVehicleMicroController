@@ -5,37 +5,37 @@
 #define LEAN_MIN_ANGLE      2.0
 #define SPEED_LIMIT_LEAN_SLOPE  (LEAN_MAX_ANGLE - LEAN_MIN_ANGLE)/(SPEED_SENS_MAX - SPEED_SENS_MIN)
 
-#define LEAN_VALVE_1_PIN    11 //Valve Coil FET
-#define LEAN_VALVE_2_PIN    12
-
 #define LEAN_OFFSET         30      //  Dead zone offset value
 
 //TODO: Is our PWM resolution different from theirs?
 #define PWM_LIMIT           256    //  Practical upper limit, = (PWM_RESOLUTION - #_OFFSET) because OFFSET will push duty cycle to limit
 
+//Lean Valve output pins
+const int leanValvePinOne = 11;
+const int leanValvePinTwo = 11;
+
 
 // Set up pins
-int leanModeTogglePin = 2;
-int leanSensor = A0;
-int joystickLRSensor = A4;
-int joystickFBSensor = A5;
-int hydraulicValve = 13;
+const int joystickFBSensor = A0;
+const int joystickLRSensor = A1;
+const int leanModeTogglePin = 2;
+const int pLeanSenseIn = A0;
+const int HydPumpEn = 14;
 
 
 // These eventually will need to be calculated and adjusted properly
 float SpeedState = 0.0;
-float Joystick_LR_Ref = 0.0;
-float Joystick_FB_Ref = 0.0;
-
+float joystickValx = 0.0;
+float joystickValy = 0.0;
 
 // the setup routine runs once when you press reset:
 void setup() {
   // initialize the digital pin as an output.
-  pinMode(hydraulicValve, OUTPUT);
-  pinMode(LEAN_VALVE_1_PIN, OUTPUT);
-  pinMode(LEAN_VALVE_2_PIN, OUTPUT);
+  pinMode(HydPumpEn, OUTPUT);
+  pinMode(leanValvePinOne, OUTPUT);
+  pinMode(leanValvePinTwo, OUTPUT);
   pinMode(leanModeTogglePin, INPUT);
-  pinMode(leanSensor, INPUT);
+  pinMode(pLeanSenseIn, INPUT);
   pinMode(joystickLRSensor, INPUT);
   pinMode(joystickFBSensor, INPUT);
 }
@@ -75,11 +75,14 @@ class LeanController{
       leanRef = calcLeanRef();
     }
     void updateSensors();
+    //Accessors
     void setSensorVal(float sensorVal);
     float getSensorVal();
+    float getLeanRef();
+    float getLeanAngleState();
     LeanController();
   private:
-    float leanSensorVal;
+    float pLeanSenseInVal;
     bool leanOn;
     float leanAngleLimit; // Speed sensitive lean limits
     float leanAngleState;
@@ -94,18 +97,27 @@ class LeanController{
     void calcLeanValveOutputs();
 };
 
+LeanController lc; //Global LeanController object
+
 void LeanController::updateSensors(){
   setSensorVal(lsc->getDutyCycle());
 }
 
 void LeanController::setSensorVal(float sensorVal){
-  this->leanSensorVal = leanSensorVal;
+  this->pLeanSenseInVal = pLeanSenseInVal;
 }
 
 float LeanController::getSensorVal(){
-  return this->leanSensorVal;
+  return this->pLeanSenseInVal;
 }
 
+float LeanController::getLeanRef(){
+  return this->leanRef;
+}
+
+float LeanController::getLeanAngleState(){
+  return this->leanAngleState;
+}
 // True == car leans (like bike), False == lean mode off (like traditional car)
 bool LeanController::readLeanMode(){
   return ((digitalRead(leanModeTogglePin) == HIGH) ? true : false);
@@ -123,7 +135,7 @@ float LeanController::calcLeanAngleLimit(){
 float LeanController::calcLeanAngle(){
   //return (360.0*LeanDuty/LeanPeriod - 1.80);  // Correct for a 1.8deg offset 
   //TODO: May be calculated wrong
-  return (360.0 * leanSensorVal - 1.80); //1023 is the max analog input val in Arduino
+  return (360.0 * pLeanSenseInVal - 1.80); //1023 is the max analog input val in Arduino
 }
 
 // In the original code, this also calculates steerRef & countersteering
@@ -131,8 +143,8 @@ float LeanController::calcLeanRef(){
   if (!leanOn){ //If lean mode off, no lean needed
     return 0.0;
   }
-  float newRef = -Joystick_LR_Ref * leanAngleLimit; //TODO: May be wrong
-  leanError = newRef - leanAngleState;
+  float newRef = -joystickValx * leanAngleLimit; //TODO: May be wrong
+  this->leanError = newRef - leanAngleState;
   return newRef;
 }
 
@@ -148,11 +160,11 @@ void LeanController::calcLeanValveOutputs(){
   }
 
   if (leanValveCmd >= 0) {
-    analogWrite(LEAN_VALVE_1_PIN, leanValveCmd + LEAN_OFFSET);
-    digitalWrite(LEAN_VALVE_2_PIN, 0);
+    analogWrite(leanValvePinOne, leanValveCmd + LEAN_OFFSET);
+    digitalWrite(leanValvePinTwo, 0);
   } else {
-    analogWrite(LEAN_VALVE_2_PIN, -leanValveCmd + LEAN_OFFSET);
-    digitalWrite(LEAN_VALVE_1_PIN, 0);
+    analogWrite(leanValvePinTwo, -leanValveCmd + LEAN_OFFSET);
+    digitalWrite(leanValvePinOne, 0);
   }
 }
 
@@ -162,12 +174,11 @@ LeanController::LeanController(){
     leanAngleLimit = LEAN_MIN_ANGLE; // Speed sensitive lean limits
 }
 
-LeanController lc;
-//TODO: Properly calculate deadzones etc. for joysticks
 void sampleSensors(){
-  lc.setSensorVal(analogRead(leanSensor));
-  Joystick_LR_Ref = analogRead(joystickLRSensor);
-  Joystick_FB_Ref = analogRead(joystickFBSensor);
+  lc.setSensorVal(analogRead(pLeanSenseIn));
+  //These are temp -- to be handled by joystick section
+  joystickValx = analogRead(joystickLRSensor);
+  joystickValy = analogRead(joystickFBSensor);
 }
 
 void loop() {
