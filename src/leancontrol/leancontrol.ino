@@ -20,7 +20,7 @@ const int joystickFBSensor = A0;
 const int joystickLRSensor = A1;
 const int leanModeTogglePin = 2;
 const int pLeanSenseIn = A0;
-const int hydraulicValve = 14;
+const int HydPumpEn = 14;
 
 
 // These eventually will need to be calculated and adjusted properly
@@ -31,7 +31,7 @@ float joystickValy = 0.0;
 // the setup routine runs once when you press reset:
 void setup() {
   // initialize the digital pin as an output.
-  pinMode(hydraulicValve, OUTPUT);
+  pinMode(HydPumpEn, OUTPUT);
   pinMode(leanValvePinOne, OUTPUT);
   pinMode(leanValvePinTwo, OUTPUT);
   pinMode(leanModeTogglePin, INPUT);
@@ -42,32 +42,32 @@ void setup() {
 
 
 //TODO: Everything regarding reading PWM input of the lean sensor
-class pLeanSenseInController {
+class LeanSensorController {
   public:
     volatile int sensorState;
     void initInterrupts();
     float getDutyCycle();
-    pLeanSenseInController();
+    LeanSensorController();
   private:
     void uptickInterrupt();
     void downtickInterrupt();
 };
 
-pLeanSenseInController::pLeanSenseInController(){
+LeanSensorController::LeanSensorController(){
   sensorState = LOW;
   initInterrupts();
 }
 
-void pLeanSenseInController::initInterrupts(){}
-void pLeanSenseInController::uptickInterrupt(){}
-void pLeanSenseInController::downtickInterrupt(){}
-float pLeanSenseInController::getDutyCycle(){return 0.0;}
+void LeanSensorController::initInterrupts(){}
+void LeanSensorController::uptickInterrupt(){}
+void LeanSensorController::downtickInterrupt(){}
+float LeanSensorController::getDutyCycle(){return 0.0;}
 
 
 
 class LeanController{
   public:
-    pLeanSenseInController *lsc;
+    LeanSensorController *lsc;
     void update(){
       leanOn = readLeanMode();
       leanAngleLimit = calcLeanAngleLimit();
