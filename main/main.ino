@@ -50,8 +50,6 @@ const int leanValvePinTwo = 10;
 const int JoystickBtn1 = 12;
 const int JoystickBtn2 = 13;
 
-const int hydraulicValve = 14;
-
 int outputJoy = 0;      
 int outputSte = 0;  
 
@@ -71,7 +69,7 @@ void setup() {
   Serial.write("Dagne control loop begin");
   initDevice();
   pinMode(pSpeedSenseIn, OUTPUT);
-  pinMode(hydraulicValve, OUTPUT);
+  pinMode(HydPumpEn, OUTPUT);
   pinMode(leanValvePinOne, OUTPUT);
   pinMode(leanValvePinTwo, OUTPUT);
   pinMode(leanModeTogglePin, INPUT);
