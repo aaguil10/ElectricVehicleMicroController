@@ -75,8 +75,11 @@ class LeanController{
       leanRef = calcLeanRef();
     }
     void updateSensors();
+    //Accessors
     void setSensorVal(float sensorVal);
     float getSensorVal();
+    float getLeanRef();
+    float getLeanAngleState();
     LeanController();
   private:
     float leanSensorVal;
@@ -106,6 +109,13 @@ float LeanController::getSensorVal(){
   return this->leanSensorVal;
 }
 
+float LeanController::getLeanRef(){
+  return this->leanRef;
+}
+
+float LeanController::getLeanAngleState(){
+  return this->leanAngleState;
+}
 // True == car leans (like bike), False == lean mode off (like traditional car)
 bool LeanController::readLeanMode(){
   return ((digitalRead(leanModeTogglePin) == HIGH) ? true : false);
@@ -132,7 +142,7 @@ float LeanController::calcLeanRef(){
     return 0.0;
   }
   float newRef = -Joystick_LR_Ref * leanAngleLimit; //TODO: May be wrong
-  leanError = newRef - leanAngleState;
+  this->leanError = newRef - leanAngleState;
   return newRef;
 }
 
@@ -163,9 +173,9 @@ LeanController::LeanController(){
 }
 
 LeanController lc;
-//TODO: Properly calculate deadzones etc. for joysticks
 void sampleSensors(){
   lc.setSensorVal(analogRead(leanSensor));
+  //These are temp -- to be handled by joystick section
   Joystick_LR_Ref = analogRead(joystickLRSensor);
   Joystick_FB_Ref = analogRead(joystickFBSensor);
 }
