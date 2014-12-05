@@ -74,7 +74,7 @@ void loop() {
   //it's suppose to account for bottom of the range where your
   //steering and leaning becomes speed sensative. 
   //(delete if unnecessary, or put into an if-else loop if appropriate). 
-  if (speedState <= 2.0) {
+  if (speedState <= 4.0) {
     steerAngleLimit = STEER_MAX_ANGLE;
     leanAngleLimit = LEAN_MIN_ANGLE;
   } 
