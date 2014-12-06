@@ -11,11 +11,11 @@
 #define PWM_LIMIT           256    //  Practical upper limit, = (PWM_RESOLUTION - #_OFFSET) because OFFSET will push duty cycle to limit
 
 //Steer Valve output pins
-const int steerValvePinOne = 11; // TODO: Plug in actual pin numbers
+const int steerValvePinOne = 10; // TODO: Plug in actual pin numbers
 const int steerValvePinTwo = 11;
 
 // Set up pins TODO: Plug in actual pin numbers
-const int joystickFBSensor = A0;
+const int joystickFBSensor = A3;
 const int joystickLRSensor = A1;
 const int pSteerSenseIn = A0;
 const int HydPumpEn = 14;
@@ -35,7 +35,7 @@ void setup() {
   pinMode(joystickLRSensor, INPUT);
   pinMode(joystickFBSensor, INPUT);
   
-  Serial.begin(9600)
+  //Serial.begin(9600);
 }
 
 //TODO: Everything regarding reading PWM input of the lean sensor
@@ -64,7 +64,7 @@ class SteerController{
   public:
     SteerSensorController *ssc;
     void update(){
-      steerAngleLimit = 0;// calcSteerAngleLimit();
+      steerAngleLimit = calcSteerAngleLimit();
       steerAngleState = calcSteerAngle();
       steerRef = calcSteerRef();
     }
@@ -84,7 +84,7 @@ class SteerController{
     float steerError;
     int steerValveCmd;
 
-    //float calcSteerAngleLimit();
+    float calcSteerAngleLimit();
     float calcSteerAngle();
     float calcSteerRef();
     void calcSteerValveOutputs();
@@ -112,13 +112,14 @@ float SteerController::getSteerAngleState(){
   return this->steerAngleState;
 }
 // Calculate speed-sensitive steer angle limit
-//float SteerController::calcSteerAngleLimit(){
+float SteerController::calcSteerAngleLimit(){
 //  float newLimit = SPEED_LIMIT_STEER_SLOPE * SpeedState + STEER_MAX_ANGLE; // Shouldn't this be STEER_MIN_ANGLE?
-//  // Clamp limits to their maxima
-//  if (newLimit > STEER_MAX_ANGLE){ newLimit = STEER_MAX_ANGLE;}
-//  if (newLimit < STEER_MIN_ANGLE){ newLimit = STEER_MIN_ANGLE;}
-//  return newLimit;
-//}
+  float newLimit = 10.0;
+  // Clamp limits to their maxima
+  //if (newLimit > STEER_MAX_ANGLE){ newLimit = STEER_MAX_ANGLE;}
+  //if (newLimit < STEER_MIN_ANGLE){ newLimit = STEER_MIN_ANGLE;}
+  return newLimit;
+}
 
 float SteerController::calcSteerAngle(){
   //return (360.0*SteerDuty/SteerPeriod - 1.80);  // Correct for a 1.8deg offset 
@@ -159,16 +160,20 @@ SteerController::SteerController(){
 }
 
 void sampleSensors(){
-  sc.setSensorVal(analogRead(pSteerSenseIn));
+  sc.setSensorVal(analogRead(A0));
   //These are temp -- to be handled by joystick section
-  joystickValx = analogRead(joystickLRSensor);
-  joystickValy = analogRead(joystickFBSensor);
+  joystickValx = 0;//analogRead(joystickLRSensor);
+  joystickValy = 0;//analogRead(joystickFBSensor);
 }
 
 void loop() {
   sampleSensors();
+  //Serial.print("Uno1: ");
+  //Serial.println(sc.getSensorVal());
+  
   sc.update();
   
-  Serial.println("SteerRef: " + sc.getSteerRef());
-  delay(1);
+  //Serial.print("Uno2: ");
+  //Serial.println(sc.getSensorVal());
+  //delay(500);
 }
