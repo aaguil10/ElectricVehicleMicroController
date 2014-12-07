@@ -10,9 +10,27 @@
 #define SPEED_SENS_MAX      30.0   //  Speed [mph] above which speed sensitive steering/leaning saturates
 #define SPEED_SENS_MIN      4.0    //  Speed [mph] below which speed sensitive steering/leaning saturates
 
+
+#define STEER_MAX_ANGLE     22.0
+#define STEER_MIN_ANGLE     15.0
 #define LEAN_MAX_ANGLE      29.0
 #define LEAN_MIN_ANGLE      2.0
-#define SPEED_LIMIT_LEAN_SLOPE  (LEAN_MAX_ANGLE - LEAN_MIN_ANGLE)/(SPEED_SENS_MAX - SPEED_SENS_MIN)
+
+//range of speed values where speed sensative steering/leaning activates
+#define SPEED_SENS_MAX      30.0
+#define SPEED_SENS_MIN      4.0
+//calculations for the amount of degrees you can change per unit of speed/lean
+#define SPEED_LIMIT_STEER_SLOPE   (STEER_MIN_ANGLE - STEER_MAX_ANGLE)/(SPEED_SENS_MAX - SPEED_SENS_MIN)
+#define SPEED_LIMIT_LEAN_SLOPE    (LEAN_MAX_ANGLE - LEAN_MIN_ANGLE)/(SPEED_SENS_MAX - SPEED_SENS_MIN)
+
+//dead zones for the joystick values (to scale with 1)
+#define LR_DEADZONE         0.02
+#define FB_DEADZONE         0.08
+//used to adjust left right values such that you have dead zones
+//where -1 will still mean max left, and 1 will mean max right
+#define LR_SCALE           1/(1-LR_DEADZONE)
+#define FB_SCALE           1/(1-FB_DEADZONE)
+
 
 #define LEAN_OFFSET         30      //  Dead zone offset value
 
@@ -24,8 +42,9 @@
 const int PWMone = 10; //Valve Coil FET. For Brake Pressure, Steer Angle, Lean Angle control
 const int PWMtwo = 9;  //Valve Coil FET. (Same as above)
 
-const int joystickFBSensor = A0;
-const int joystickLRSensor = A1;
+// Joystick sensor pins
+const int joystickLRSensor = A9;
+const int joystickFBSensor = A3;
 
 // Sensor Input Pins for Hydralic Valve(0-12v on/off) [see powerpoint]
 const int pLeanSenseIn = 0; 
@@ -56,11 +75,13 @@ int outputSte = 0;
 int buttonState1 = 0;
 int buttonState2 = 0;
 
+//limit calculated depending on speed
+float steerAngleLimit = STEER_MAX_ANGLE;
 //Current speed in MPH
 float SpeedState = 0.0;
 
-int joystickValx = 0;
-int joystickValy = 0;
+int LRanalogVal, FBanalogVal;
+float joystick_LR, joystick_FB;
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -97,27 +118,67 @@ void loop() {
   setThrottle();
   setRevValues();
   //analog inputs
-  joystickValy = readAnalog(joystickFBSensor);
-  joystickValx = readAnalog(joystickLRSensor);
+  FBanalogVal = readAnalog(joystickFBSensor);
+  LRanalogVal = readAnalog(joystickLRSensor);
+  //Print joystick input values for testing purposes
+  Serial.print("Left-right analog value: ");
+  Serial.println(LRanalogVal);
+  Serial.print("Forward-brake analog value: ");
+  Serial.println(FBanalogVal);
   int PumpVal = readAnalog(A2);
   int BrakeSensor = readAnalog(A3);
-   //PWM inputs
+  //PWM inputs
   int SteerSensor = readAnalog(A4);
   int LeanSensor = readAnalog(A4);
   int SpeedSensor = readAnalog(A4);
-  
-  PWMOutput2(joystickValx, SteerSensor, 10);
+
+  //convert to [-1,1] value
+  joystick_LR = (LRanalogVal / 512.0) - 1.0;
+  joystick_FB = (FBanalogVal / 512.0) - 1.0;
+
+  setJoystickDeadzones();
+  setSpeedSensitivity();
+
+  PWMOutput2(joystick_LR, SteerSensor, 10);
   button_test(); 
   led_test();
   digitalWrite(pSpeedSenseIn, HIGH);
   delay(30);        // delay in between reads for stability
 }
 
+void setJoystickDeadzones(){
+  //set the deadzones for the left right ranges of the joystick
+  if (joystick_LR <= -LR_DEADZONE){
+    joystick_LR = (joystick_LR + LR_DEADZONE) * LR_SCALE;
+  }else if (joystick_LR > LR_DEADZONE){
+    joystick_LR = (joystick_LR + LR_DEADZONE) * LR_SCALE;
+  }else {
+    joystick_LR = 0.0;
+  }
+  //set the deadzones for the foward brake ranges of the joystick
+  if (joystick_FB <= -FB_DEADZONE) joystick_FB = (joystick_FB + FB_DEADZONE) * FB_SCALE;
+  else if (joystick_LR > FB_DEADZONE) joystick_FB = (joystick_FB + FB_DEADZONE) * FB_SCALE;
+  else joystick_LR = 0.0;
+}
+void setSpeedSensitivity(){
+  //you want it so that the faster you go, the less sensative your steer
+  steerAngleLimit = SPEED_LIMIT_STEER_SLOPE * SpeedState + STEER_MAX_ANGLE;
+  if (steerAngleLimit > STEER_MAX_ANGLE) steerAngleLimit = STEER_MAX_ANGLE;
+  if (steerAngleLimit < STEER_MIN_ANGLE) steerAngleLimit = STEER_MIN_ANGLE;
+  //this is not in their code - but I'm wondering why it isn't.
+  //it's supposed to account for bottom of the range where your
+  //steering becomes speed sensative.
+  //(delete if unnecessary, or put into an if-else loop if appropriate).
+  if (SpeedState <= 4.0) {
+    steerAngleLimit = STEER_MAX_ANGLE;
+  }
+}
+
 //Initialization function for device
 void initDevice(){
 	pinMode(JoystickBtn1, INPUT);
-    pinMode(JoystickBtn2, INPUT);
-    pinMode(pSteerSenseIn, OUTPUT);
+  pinMode(JoystickBtn2, INPUT);
+  pinMode(pSteerSenseIn, OUTPUT);
 	pinMode(pLeanSenseIn, OUTPUT);
 	//pinMode(pSpeedSenseIn, OUTPUT);
 	pinMode(pRevSw1, OUTPUT);
@@ -156,50 +217,22 @@ void led_test(){
   digitalWrite(leanModeTogglePin, HIGH);
 }
 
-
-/* Lean Section */
-//TODO: Everything regarding reading PWM input of the lean sensor
-class LeanSensorController {
-  public:
-    volatile int sensorState;
-    void initInterrupts();
-    float getDutyCycle();
-    LeanSensorController();
-  private:
-    void uptickInterrupt();
-    void downtickInterrupt();
-};
-
-LeanSensorController::LeanSensorController(){
-  sensorState = LOW;
-  initInterrupts();
-}
-
-void LeanSensorController::initInterrupts(){}
-void LeanSensorController::uptickInterrupt(){}
-void LeanSensorController::downtickInterrupt(){}
-float LeanSensorController::getDutyCycle(){return 0.0;}
-
-
-
 class LeanController{
   public:
-    LeanSensorController *lsc;
     void update(){
       leanOn = readLeanMode();
       leanAngleLimit = calcLeanAngleLimit();
       leanAngleState = calcLeanAngle();
       leanRef = calcLeanRef();
     }
-    void updateSensors();
     //Accessors
-    void setSensorVal(float sensorVal);
-    float getSensorVal();
+    void setSensorVal(int sensorVal);
+    int getSensorVal();
     float getLeanRef();
     float getLeanAngleState();
     LeanController();
   private:
-    float pLeanSenseInVal;
+    int pLeanSenseInVal;
     bool leanOn;
     float leanAngleLimit; // Speed sensitive lean limits
     float leanAngleState;
@@ -215,15 +248,11 @@ class LeanController{
 };
 LeanController *lc;
 
-void LeanController::updateSensors(){
-  setSensorVal(lsc->getDutyCycle());
-}
-
-void LeanController::setSensorVal(float sensorVal){
+void LeanController::setSensorVal(int sensorVal){
   this->pLeanSenseInVal = pLeanSenseInVal;
 }
 
-float LeanController::getSensorVal(){
+int LeanController::getSensorVal(){
   return this->pLeanSenseInVal;
 }
 
@@ -249,9 +278,10 @@ float LeanController::calcLeanAngleLimit(){
 }
 
 float LeanController::calcLeanAngle(){
-  //return (360.0*LeanDuty/LeanPeriod - 1.80);  // Correct for a 1.8deg offset 
-  //TODO: May be calculated wrong
-  return (360.0 * pLeanSenseInVal - 1.80); //1023 is the max analog input val in Arduino
+  //TODO: Probably calculated wrong
+  //convert to [-1, 1] value
+  float sensedLeanAngle = (pLeanSenseInVal / 512.0) - 1.0;
+  return (360.0 * sensedLeanAngle - 1.80);
 }
 
 // In the original code, this also calculates steerRef & countersteering
@@ -259,7 +289,7 @@ float LeanController::calcLeanRef(){
   if (!leanOn){ //If lean mode off, no lean needed
     return 0.0;
   }
-  float newRef = -joystickValx * leanAngleLimit; //TODO: May be wrong
+  float newRef = -joystick_LR * leanAngleLimit; //TODO: May be wrong
   this->leanError = newRef - leanAngleState;
   return newRef;
 }
