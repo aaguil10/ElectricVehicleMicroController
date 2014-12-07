@@ -11,16 +11,16 @@
 #define PWM_LIMIT           256    //  Practical upper limit, = (PWM_RESOLUTION - #_OFFSET) because OFFSET will push duty cycle to limit
 
 //Lean Valve output pins
-const int leanValvePinOne = 11;
-const int leanValvePinTwo = 11;
+const int leanValvePinOne = 45;
+const int leanValvePinTwo = 44;
 
 
 // Set up pins
 const int joystickFBSensor = A0;
 const int joystickLRSensor = A1;
 const int leanModeTogglePin = 2;
-const int pLeanSenseIn = A0;
-const int HydPumpEn = 14;
+const int pLeanSenseIn = A7;
+const int HydPumpEn = A6;
 
 
 // These eventually will need to be calculated and adjusted properly
