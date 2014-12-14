@@ -15,6 +15,8 @@ verified through serial logging from the Arduinos.
 
 In addition, a large portion of our project is the design documentation which
 can be found in the GitHub repository
-(https://github.com/aaguil10/ElectricVehicleMicroController).
+(https://github.com/aaguil10/ElectricVehicleMicroController). We consider this
+document as our user documentation as the user of our product is future vehicle
+developers.
 
 
